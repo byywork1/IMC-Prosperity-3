@@ -1,6 +1,10 @@
-from typing import Any, Dict, List
 import json
+from abc import abstractmethod
+from collections import deque
 from datamodel import Listing, Observation, Order, OrderDepth, ProsperityEncoder, Symbol, Trade, TradingState
+from typing import Any, TypeAlias
+
+JSON: TypeAlias = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
 
 class Logger:
     def __init__(self) -> None:
@@ -119,8 +123,44 @@ class Logger:
 logger = Logger()
 
 
+class Strategy:
+    def __init__(self, symbol: str, limit: int) -> None:
+        self.symbol = symbol  # The trading asset (e.g., "AMETHYSTS")
+        self.limit = limit  # Maximum position size for this asset
+
+    # This method must be implemented by subclasses
+    @abstractmethod
+    def act(self, state: TradingState) -> None:
+        raise NotImplementedError()  # Must be implemented in subclasses
+
+    def run(self, state: TradingState) -> list[Order]:
+        self.orders = []  # Resets orders before execution
+        self.act(state)  # Calls the strategy’s action logic
+        return self.orders  # Returns generated orders
+
+    def buy(self, price: int, quantity: int) -> None:
+        self.orders.append(Order(self.symbol, price, quantity))  # Place a buy order
+
+    def sell(self, price: int, quantity: int) -> None:
+        self.orders.append(Order(self.symbol, price, -quantity))  # Place a sell order
+
+    def save(self) -> JSON:
+        return None  # Can be used to save strategy state
+
+    def load(self, data: JSON) -> None:
+        pass  # Can be used to restore strategy state
+
+
 
 class Trader:
+    def __init__(self) -> None:
+        limits = {
+        "RAINFOREST_RESIN": 50, 
+        "KELP": 50,
+        }
+
+    
+
 
     def run(self, state: TradingState) -> Dict[str, List[Order]]:
         """
